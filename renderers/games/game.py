@@ -8,9 +8,10 @@ from data.scoreboard.inning import Inning
 from data.scoreboard.pitches import Pitches
 from renderers import scrollingtext
 from renderers.games import nohitter
+from icecream import ic
 
 
-def render_live_game(canvas, layout: Layout, colors: Color, scoreboard: Scoreboard, text_pos, animation_time):
+def render_live_game(canvas, layout: Layout, colors: Color, scoreboard: Scoreboard, text_pos, animation_time, third_out):
     pos = 0
 
     if scoreboard.inning.state == Inning.TOP or scoreboard.inning.state == Inning.BOTTOM:
@@ -34,7 +35,7 @@ def render_live_game(canvas, layout: Layout, colors: Color, scoreboard: Scoreboa
                 nohitter.render_nohit_text(canvas, layout, colors)
 
         _render_count(canvas, layout, colors, scoreboard.pitches)
-        _render_outs(canvas, layout, colors, scoreboard.outs)
+        _render_outs(canvas, layout, colors, scoreboard.outs, third_out)
         _render_bases(canvas, layout, colors, scoreboard.bases, scoreboard.homerun(), (animation_time % 16) // 5)
 
         _render_inning_display(canvas, layout, colors, scoreboard.inning)
@@ -45,18 +46,24 @@ def render_live_game(canvas, layout: Layout, colors: Color, scoreboard: Scoreboa
     return pos
 
 
+# TODO: properly provide ability to disable pitcher/batter text.
+# TODO: Allow more configurability around these (e.g., just last name)
 # --------------- at-bat ---------------
 def _render_at_bat(canvas, layout, colors, atbat: AtBat, text_pos, strikeout, looking, animation, pitches: Pitches):
-    plength = __render_pitcher_text(canvas, layout, colors, atbat.pitcher, pitches, text_pos)
+    # plength = __render_pitcher_text(canvas, layout, colors, atbat.pitcher, pitches, text_pos)
+    # ic(plength)
     __render_pitch_text(canvas, layout, colors, pitches)
     __render_pitch_count(canvas, layout, colors, pitches)
-    if strikeout:
-        if animation:
-            __render_strikeout(canvas, layout, colors, looking)
-        return plength
-    else:
-        blength = __render_batter_text(canvas, layout, colors, atbat.batter, text_pos)
-        return max(plength, blength)
+    # if strikeout:
+    #     if animation:
+    #         __render_strikeout(canvas, layout, colors, looking)
+        # return plength
+    # else:
+        # blength = __render_batter_text(canvas, layout, colors, atbat.batter, text_pos)
+        # return max(plength, blength)
+    
+    return 0
+    
 
 
 def __render_strikeout(canvas, layout, colors, looking):
@@ -149,6 +156,11 @@ def _render_bases(canvas, layout, colors, bases: Bases, home_run, animation):
     base_colors.append(colors.graphics_color("bases.2B"))
     base_colors.append(colors.graphics_color("bases.3B"))
 
+    baserunner_colors = []
+    baserunner_colors.append(colors.graphics_color("bases.fill.1B"))
+    baserunner_colors.append(colors.graphics_color("bases.fill.2B"))
+    baserunner_colors.append(colors.graphics_color("bases.fill.3B"))
+
     base_px = []
     base_px.append(layout.coords("bases.1B"))
     base_px.append(layout.coords("bases.2B"))
@@ -159,7 +171,7 @@ def _render_bases(canvas, layout, colors, bases: Bases, home_run, animation):
 
         # Fill in the base if there's currently a baserunner or cycle if theres a homer
         if base_runners[base] or (home_run and animation == base):
-            __render_baserunner(canvas, base_px[base], base_colors[base])
+            __render_baserunner(canvas, base_px[base], baserunner_colors[base])
 
 
 def __render_base_outline(canvas, base, color):
@@ -173,10 +185,10 @@ def __render_base_outline(canvas, base, color):
 
 
 def __render_baserunner(canvas, base, color):
-    x, y = (base["x"], base["y"])
-    size = base["size"]
+    x, y = (base["x"] + 1, base["y"] + 1)
+    size = base["size"] - 2
     half = abs(size // 2)
-    for offset in range(1, half + 1):
+    for offset in range(0, half + 1):
         graphics.DrawLine(canvas, x + half - offset, y + size - offset, x + half + offset, y + size - offset, color)
         graphics.DrawLine(canvas, x + half - offset, y + offset, x + half + offset, y + offset, color)
 
@@ -205,11 +217,13 @@ def __out_colors(colors):
     return outlines, fills
 
 
-def _render_outs(canvas, layout, colors, outs):
+def _render_outs(canvas, layout, colors, outs, third_out):
     out_px = []
     out_px.append(layout.coords("outs.1"))
     out_px.append(layout.coords("outs.2"))
-    out_px.append(layout.coords("outs.3"))
+
+    if third_out:
+        out_px.append(layout.coords("outs.3"))
 
     out_colors = []
     out_colors, fill_colors = __out_colors(colors)

@@ -14,6 +14,8 @@ from renderers.games import postgame as postgamerender
 from renderers.games import pregame as pregamerender
 from renderers.games import teams
 
+from icecream import ic
+
 # TODO(BMW) make configurable time?
 STANDINGS_NEWS_SWITCH_TIME = 120
 
@@ -31,6 +33,7 @@ class MainRenderer:
         self.standings_league = "NL"
 
     def render(self):
+        ic()
         screen = self.data.get_screen_type()
         # display the news ticker
         if screen == ScreenType.ALWAYS_NEWS:
@@ -44,6 +47,7 @@ class MainRenderer:
             self.__render_offday(team_offday=True)
         # Playball!
         else:
+            ic('rendering gameday')
             self.__render_gameday()
 
     def __render_offday(self, team_offday=True) -> NoReturn:
@@ -161,7 +165,7 @@ class MainRenderer:
             loop_point = self.data.config.layout.coords("atbat")["loop"]
             self.scrolling_text_pos = min(self.scrolling_text_pos, loop_point)
             pos = gamerender.render_live_game(
-                self.canvas, layout, colors, scoreboard, self.scrolling_text_pos, self.animation_time
+                self.canvas, layout, colors, scoreboard, self.scrolling_text_pos, self.animation_time, self.data.config.third_out
             )
             self.__update_scrolling_text_pos(pos, loop_point)
 
